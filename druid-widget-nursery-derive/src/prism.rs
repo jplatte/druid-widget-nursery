@@ -1,15 +1,16 @@
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
-use syn::{parse_quote, spanned::Spanned, Data, DeriveInput, Fields, GenericParam, WherePredicate};
+use syn::{parse_quote, Data, DeriveInput, Fields, GenericParam, WherePredicate};
 
 pub fn expand_prism(input: DeriveInput) -> syn::Result<TokenStream> {
     let variants = match input.data {
         Data::Enum(e) => e.variants,
-        _ => panic!("this derive macro only works on structs with named fields"),
+        _ => panic!("this derive macro only works on enums"),
     };
 
     let enum_name = input.ident;
     let enum_vis = input.vis;
+    let prism_mod_name = format_ident!("{}_derived_prisms", enum_name);
 
     let mut generics = input.generics;
 
@@ -26,13 +27,12 @@ pub fn expand_prism(input: DeriveInput) -> syn::Result<TokenStream> {
             GenericParam::Lifetime(_) | GenericParam::Const(_) => None,
         }));
 
-    let (impl_generics, enum_generics, _enum_where_clause) = generics.split_for_impl();
+    let (impl_generics, enum_generics, enum_where_clause) = generics.split_for_impl();
 
-    variants
+    let prisms: TokenStream = variants
         .iter()
         .map(|v| {
             let variant_name = &v.ident;
-            let name = format_ident!("{}{}", enum_name, variant_name, span = v.span());
 
             let inner_type;
             let inner_expr;
@@ -75,13 +75,13 @@ pub fn expand_prism(input: DeriveInput) -> syn::Result<TokenStream> {
 
             Ok(quote! {
                 #[derive(Clone)]
-                #enum_vis struct #name;
+                pub struct #variant_name;
 
                 #[automatically_derived]
                 impl #impl_generics ::druid_widget_nursery::prism::Prism<
                     #enum_name #enum_generics,
                     #inner_type,
-                > for #name #prism_where_clause {
+                > for #variant_name #prism_where_clause {
                     fn get(
                         &self,
                         data: &#enum_name #enum_generics,
@@ -100,5 +100,24 @@ pub fn expand_prism(input: DeriveInput) -> syn::Result<TokenStream> {
                 }
             })
         })
-        .collect()
+        .collect::<syn::Result<_>>()?;
+
+    let prism_names = variants.iter().map(|v| &v.ident);
+
+    Ok(quote! {
+        #[allow(non_snake_case)]
+        #enum_vis mod #prism_mod_name {
+            use super::*;
+            #prisms
+        }
+
+        #[automatically_derived]
+        #[allow(non_upper_case_globals)]
+        impl #impl_generics #enum_name #enum_generics #enum_where_clause {
+            #(
+                pub const #prism_names: #prism_mod_name::#prism_names =
+                    #prism_mod_name::#prism_names;
+            )*
+        }
+    })
 }

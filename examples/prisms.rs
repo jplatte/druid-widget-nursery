@@ -27,11 +27,11 @@ fn main_widget() -> impl Widget<TestData> {
         ),
     );
 
-    let b = MultiRadio::new("Variant B", TextBox::new(), String::new(), TestDataB);
+    let b = MultiRadio::new("Variant B", TextBox::new(), String::new(), TestData::B);
 
     let c_inner = MultiCheckbox::new("inner value", TextBox::new(), String::from("initial data"));
 
-    let c = MultiRadio::new("Variant C", c_inner, None, TestDataC);
+    let c = MultiRadio::new("Variant C", c_inner, None, TestData::C);
 
     let left = Flex::column()
         .with_child(a)
@@ -58,13 +58,13 @@ fn main_widget() -> impl Widget<TestData> {
     )
     .show_when_disabled();
 
-    let b =
-        MultiRadio::new("Variant B", TextBox::new(), String::new(), TestDataB).show_when_disabled();
+    let b = MultiRadio::new("Variant B", TextBox::new(), String::new(), TestData::B)
+        .show_when_disabled();
 
     let c_inner = MultiCheckbox::new("inner value", TextBox::new(), String::from("initial data"))
         .show_when_disabled();
 
-    let c = MultiRadio::new("Variant C", c_inner, None, TestDataC).show_when_disabled();
+    let c = MultiRadio::new("Variant C", c_inner, None, TestData::C).show_when_disabled();
 
     let middle = Flex::column()
         .with_child(a)
@@ -75,10 +75,10 @@ fn main_widget() -> impl Widget<TestData> {
         .cross_axis_alignment(CrossAxisAlignment::Start);
 
     let right = druid_widget_nursery::enum_switcher::Switcher::new()
-        .with_variant(TestDataA, Slider::new().with_range(0.0, 10.0))
-        .with_variant(TestDataB, TextBox::new())
+        .with_variant(TestData::A, Slider::new().with_range(0.0, 10.0))
+        .with_variant(TestData::B, TextBox::new())
         .with_variant(
-            TestDataC,
+            TestData::C,
             MultiCheckbox::new("optional data", TextBox::new(), "".to_string()),
         );
 
